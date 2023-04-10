@@ -291,9 +291,20 @@ public class SentinelApiClient {
             future.completeExceptionally(new IllegalArgumentException("Given ip does not belong to given app"));
             return future;
         }
+        final String[] contextPath = new String[1];
+        appManagement.getAppNames().forEach(e->{
+            appManagement.getDetailApp(e).getMachine(ip, port).ifPresent((c)-> {
+                String localContextPath = c.getContextPath();
+                if(localContextPath!=null && localContextPath.length()>1 ){
+                    contextPath[0] = c.getContextPath();
+                }else {
+                    contextPath[0] = "";
+                }
+            });
+        });
         StringBuilder urlBuilder = new StringBuilder();
         urlBuilder.append("http://");
-        urlBuilder.append(ip).append(':').append(port).append('/').append(api);
+        urlBuilder.append(ip).append(':').append(port).append(contextPath[0]).append("/").append(api);
         if (params == null) {
             params = Collections.emptyMap();
         }
@@ -307,14 +318,16 @@ public class SentinelApiClient {
                 }
                 urlBuilder.append(queryString(params));
             }
+            System.out.println(urlBuilder.toString());
             return executeCommand(new HttpGet(urlBuilder.toString()));
         } else {
             // Using POST
+            System.out.println("Using POST "+urlBuilder.toString());
             return executeCommand(
                     postRequest(urlBuilder.toString(), params, isSupportEnhancedContentType(app, ip, port)));
         }
     }
-    
+
     private CompletableFuture<String> executeCommand(HttpUriRequest request) {
         CompletableFuture<String> future = new CompletableFuture<>();
         httpClient.execute(request, new FutureCallback<HttpResponse>() {
@@ -323,6 +336,7 @@ public class SentinelApiClient {
                 int statusCode = response.getStatusLine().getStatusCode();
                 try {
                     String value = getBody(response);
+                    System.out.println("value:  "+value);
                     if (isSuccess(statusCode)) {
                         future.complete(value);
                     } else {
