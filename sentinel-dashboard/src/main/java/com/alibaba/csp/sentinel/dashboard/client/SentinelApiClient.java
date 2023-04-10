@@ -336,7 +336,6 @@ public class SentinelApiClient {
                 int statusCode = response.getStatusLine().getStatusCode();
                 try {
                     String value = getBody(response);
-                    System.out.println("value:  "+value);
                     if (isSuccess(statusCode)) {
                         future.complete(value);
                     } else {
